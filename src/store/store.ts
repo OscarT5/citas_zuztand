@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { createJSONStorage, persist } from 'zustand/middleware'
 import type { DraftPatient, Patient } from '../types'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -25,39 +26,48 @@ const crearPaciente = (data: DraftPatient): Patient => {
 
 
 // 3. Crear el store
-export const usePacienteStore = create<PacientesState>((set) => ({
-    pacientes: [],
-    pacienteActivo: null,
+export const usePacienteStore = create<PacientesState>()(
+    persist(
+        (set) => ({
+            pacientes: [],
+            pacienteActivo: null,
 
-    agregarPaciente: (data) => set((state) => ({
-        pacientes: [...state.pacientes, crearPaciente({ ...data })]
-    })),
-    eliminarPaciente: (id) => set((state) => ({
-        pacientes: state.pacientes.filter(paciente => paciente.id !== id),
-        pacienteActivo: state.pacienteActivo?.id === id ? null : state.pacienteActivo
-    })),
+            agregarPaciente: (data) => set((state) => ({
+                pacientes: [...state.pacientes, crearPaciente({ ...data })]
+            })),
+            eliminarPaciente: (id) => set((state) => ({
+                pacientes: state.pacientes.filter(paciente => paciente.id !== id),
+                pacienteActivo: state.pacienteActivo?.id === id ? null : state.pacienteActivo
+            })),
 
-    establecerPacienteActivo: (paciente) => {
-        set(() => ({
-            pacienteActivo: paciente
-        }))
-    },
+            establecerPacienteActivo: (paciente) => {
+                set(() => ({
+                    pacienteActivo: paciente
+                }))
+            },
 
-    actualizarPaciente: (id, data) => {
-        const payload = { ...data }
-        set((state) => ({
-            pacientes: state.pacientes.map(paciente =>
-                paciente.id === id
-                    ? { id: paciente.id, ...payload }
-                    : paciente
-            ),
-            pacienteActivo: null
-        }))
-    },
+            actualizarPaciente: (id, data) => {
+                const payload = { ...data }
+                set((state) => ({
+                    pacientes: state.pacientes.map(paciente =>
+                        paciente.id === id
+                            ? { id: paciente.id, ...payload }
+                            : paciente
+                    ),
+                    pacienteActivo: null
+                }))
+            },
 
-    limpiarPacienteActivo: () => {
-        set(() => ({
-            pacienteActivo: null
-        }))
-    }
-}))
+            limpiarPacienteActivo: () => {
+                set(() => ({
+                    pacienteActivo: null
+                }))
+            }
+        }),
+        {
+            name: 'pacientes-storage',
+            storage: createJSONStorage(() => localStorage),
+            partialize: (state) => ({ pacientes: state.pacientes })
+        }
+    )
+)
